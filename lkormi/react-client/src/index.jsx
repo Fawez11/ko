@@ -1,16 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
-import data from "./sample_data.js";
 import Practice from "./components/Practice.jsx";
 import PhraseList from "./components/PhraseList.jsx";
+import Progress from "./components/Progress.jsx"; 
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       view: "phrases",
-      phrases: data,
+      phrases: [], // Initialize phrases as an empty array
       index: 0,
     };
 
@@ -24,8 +24,8 @@ class App extends React.Component {
   }
 
   componentDidMount() {
+    // Load phrases from the server when the component mounts
     $.get("/api/phrases").then((results) => {
-      // console.log(results);
       this.setState({
         phrases: results,
       });
@@ -33,33 +33,29 @@ class App extends React.Component {
   }
 
   changePhrases(id, status) {
-    console.log(id, status);
+    // Function to update the phrase's status
     $.ajax({
       method: "PATCH",
       url: `/api/phrases/${id}`,
       data: { status },
     }).done((msg) => {
-      console.log("operation ended with " + msg);
-      if (this.state.index == this.state.phrases.length - 1) {
-        this.setState({
-          index: 0,
-        });
-      } else {
-        this.setState({
-          index: this.state.index + 1,
-        });
-      }
+      // Update the index to show the next phrase
+      this.setState((prevState) => ({
+        index: prevState.index + 1,
+      }));
     });
   }
 
   render() {
+    const { view, phrases, index } = this.state;
+
     return (
       <div>
         <div className="nav">
           <span className="logo">Korean Tutor</span>
           <span
             className={
-              this.state.view === "phrases" ? "nav-selected" : "nav-unselected"
+              view === "phrases" ? "nav-selected" : "nav-unselected"
             }
             onClick={() => this.changeView("phrases")}
           >
@@ -67,7 +63,7 @@ class App extends React.Component {
           </span>
           <span
             className={
-              this.state.view === "practice" ? "nav-selected" : "nav-unselected"
+              view === "practice" ? "nav-selected" : "nav-unselected"
             }
             onClick={() => this.changeView("practice")}
           >
@@ -76,13 +72,22 @@ class App extends React.Component {
         </div>
 
         <div className="main">
-          {this.state.view === "phrases" ? (
-            <PhraseList phrases={this.state.phrases} />
+          {view === "phrases" ? (
+            <PhraseList phrases={phrases} />
           ) : (
-            <Practice
-              changePhrases={this.changePhrases}
-              phrase={this.state.phrases[this.state.index]}
-            />
+            <>
+              <Progress phrases={phrases} /> {/* Display progress */}
+              <Practice
+                changePhrases={this.changePhrases}
+                phrase={index !== -1 ? phrases[index] : null}
+              />
+            </>
+          )}
+
+          {index === -1 && (
+            <div className="completion-message">
+              Congratulations! You've mastered all the phrases.
+            </div>
           )}
         </div>
       </div>
@@ -91,3 +96,5 @@ class App extends React.Component {
 }
 
 ReactDOM.render(<App />, document.getElementById("app"));
+
+export default App;
